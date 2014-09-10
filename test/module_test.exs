@@ -4,27 +4,27 @@ defmodule XMPP.ModuleTest do
   defmodule Echo do
     use XMPP.Module
 
-    require Record
+    defmodule State do
+      defstruct host: nil
+    end
+
     require Logger
 
-    Record.defrecord :state, [host: nil]
-
-    def init([host, options]) do
-      Logger.debug "Initalizing Module"
-      echo_host = :gen_mod.get_opt_host(host, options, <<"echo.", host :: binary>>)
-      :ejabberd_router.register_route(echo_host)
-      {:ok, state(host: echo_host)}
+    def init([host, _options]) do
+      Logger.debug "Initalizing Module for host: " <> host
+      XMPP.Router.register(host)
+      {:ok, %State{host: host}}
     end
 
     def terminate(_, state) do
-      Logger.debug "Terminating Module"
-      :ejabberd_router.unregister_route(state.host)
+      Logger.debug "Terminating Module for host: " <> state.host
+      XMPP.Router.unregister(state.host)
       :ok
     end
 
-    def handle_call(_, _form, state) do
+    def handle_call(:host, _from, state) do
       Logger.debug "Calling Module …"
-      {:reply, :ok, state}
+      {:reply, state.host, state}
     end
 
   end
@@ -39,7 +39,7 @@ defmodule XMPP.ModuleTest do
 
     ## Start the module "Echo" in the host "localhost"
 
-    {:ok, module} = XMPP.Module.start("localhost", Echo, [])
+    {:ok, module} = XMPP.Module.start("localhost", Echo, [{:host, <<"echo.@HOST@">>}])
 
     loaded_modules = XMPP.Module.loaded("localhost")
     assert Enum.member?(loaded_modules, Echo)
@@ -47,7 +47,7 @@ defmodule XMPP.ModuleTest do
     children = Supervisor.which_children(:ejabberd_sup)
     assert Keyword.has_key?(children, XMPP.ModuleTest.Echo_localhost)
 
-    assert :ok == GenServer.call(module, "foo")
+    assert "echo.localhost" == GenServer.call(module, :host)
 
     ## Stop the module "Echo"
 

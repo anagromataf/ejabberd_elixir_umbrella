@@ -33,7 +33,8 @@ defmodule XMPP.Module do
       @doc false
       def start_link(host, options) do
         proc = :gen_mod.get_module_proc(host, __MODULE__)
-        GenServer.start_link(__MODULE__, [host, options], [{:name, proc}])
+        module_host = :gen_mod.get_opt_host(host, options, host)
+        GenServer.start_link(__MODULE__, [module_host, options], [{:name, proc}])
       end
 
       @doc false
