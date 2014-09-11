@@ -4,27 +4,18 @@ defmodule XMPP.ModuleTest do
   defmodule Echo do
     use XMPP.Module
 
-    defmodule State do
-      defstruct host: nil
-    end
-
-    require Logger
-
     def init([host, _options]) do
-      Logger.debug "Initalizing Module for host: " <> host
       XMPP.Router.register(host)
-      {:ok, %State{host: host}}
+      {:ok, host}
     end
 
-    def terminate(_, state) do
-      Logger.debug "Terminating Module for host: " <> state.host
-      XMPP.Router.unregister(state.host)
+    def terminate(_, host) do
+      XMPP.Router.unregister(host)
       :ok
     end
 
-    def handle_call(:host, _from, state) do
-      Logger.debug "Calling Module …"
-      {:reply, state.host, state}
+    def handle_call(:host, _from, host) do
+      {:reply, host, host}
     end
 
   end
