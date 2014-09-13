@@ -8,8 +8,8 @@ defmodule XMPP.Router do
     :ejabberd_router.unregister_route(host)
   end
 
-  def router(from, to, packet) do
-    :ejabberd_router.route(from, to, packet)
+  def route(from, to, stanza) do
+    :ejabberd_router.route(from, to, stanza)
   end
 
 end
