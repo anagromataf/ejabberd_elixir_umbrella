@@ -3,15 +3,15 @@ defmodule XMPP.JidTest do
 
   require XMPP.Jid
 
-  test "create jid" do
-    jid = XMPP.Jid.create("test", "example.com", "Resource")
+  test "new jid with components" do
+    jid = XMPP.Jid.new("test", "example.com", "Resource")
     assert XMPP.Jid.user(jid) == "test"
     assert XMPP.Jid.server(jid) == "example.com"
     assert XMPP.Jid.resource(jid) == "Resource"
   end
 
-  test "jid from stirng" do
-    jid = XMPP.Jid.create("test@example.com/Resource")
+  test "new jid from stirng" do
+    jid = XMPP.Jid.new("test@example.com/Resource")
     assert XMPP.Jid.user(jid) == "test"
     assert XMPP.Jid.server(jid) == "example.com"
     assert XMPP.Jid.resource(jid) == "Resource"

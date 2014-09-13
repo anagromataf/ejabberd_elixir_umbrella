@@ -6,6 +6,8 @@ defmodule XMPP.Module do
       use GenServer
       @behaviour :gen_mod
 
+      import XMPP.Element
+
       ##
       ## gen_mode API
       ##
@@ -41,6 +43,33 @@ defmodule XMPP.Module do
       def handle_call(:stop, _from, state) do
         {:stop, :normal, :ok, state}
       end
+
+      @doc false
+      def handle_info({:route, from, to, packet = xmlel(name: "message")}, state) do
+        handle_message(from, to, packet, state)
+      end
+
+      @doc false
+      def handle_info({:route, from, to, packet = xmlel(name: "iq")}, state) do
+        iq = :jlib.iq_query_info(packet)
+        handle_iq(from, to, iq, state)
+      end
+
+      ##
+      ## Stanza Hnadling
+      ##
+
+      @doc false
+      def handle_message(from, to, message, state) do
+        {:noreply, state}
+      end
+
+      def handle_iq(from, to, message, state) do
+        {:noreply, state}
+      end
+
+      defoverridable [handle_message: 4,
+                      handle_iq: 4]
 
     end
   end

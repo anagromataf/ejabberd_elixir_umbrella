@@ -1,10 +1,10 @@
 defmodule XMPP.ModuleTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
 
   defmodule Echo do
     use XMPP.Module
 
-    def init([host, _options]) do
+    def init([host, _]) do
       XMPP.Router.register(host)
       {:ok, host}
     end
@@ -13,42 +13,18 @@ defmodule XMPP.ModuleTest do
       XMPP.Router.unregister(host)
       :ok
     end
-
-    def handle_call(:host, _from, host) do
-      {:reply, host, host}
-    end
-
   end
 
-  ##
-  ## Tests
-  ##
-
-  require Logger
-
   test "xmpp module starting and stopping" do
+    ## start
+    {:ok, _module} = XMPP.Module.start("localhost", Echo, [{:host, <<"echo.@HOST@">>}])
+    assert Enum.member?(XMPP.Module.loaded("localhost"), Echo)
+    assert Keyword.has_key?(Supervisor.which_children(:ejabberd_sup), XMPP.ModuleTest.Echo_localhost)
 
-    ## Start the module "Echo" in the host "localhost"
-
-    {:ok, module} = XMPP.Module.start("localhost", Echo, [{:host, <<"echo.@HOST@">>}])
-
-    loaded_modules = XMPP.Module.loaded("localhost")
-    assert Enum.member?(loaded_modules, Echo)
-
-    children = Supervisor.which_children(:ejabberd_sup)
-    assert Keyword.has_key?(children, XMPP.ModuleTest.Echo_localhost)
-
-    assert "echo.localhost" == GenServer.call(module, :host)
-
-    ## Stop the module "Echo"
-
+    ## stop
     assert :ok == XMPP.Module.stop("localhost", Echo)
-
-    loaded_modules = XMPP.Module.loaded("localhost")
-    assert false == Enum.member?(loaded_modules, Echo)
-
-    children = Supervisor.which_children(:ejabberd_sup)
-    assert false == Keyword.has_key?(children, XMPP.ModuleTest.Echo_localhost)
+    refute Enum.member?(XMPP.Module.loaded("localhost"), Echo)
+    refute Keyword.has_key?(Supervisor.which_children(:ejabberd_sup), XMPP.ModuleTest.Echo_localhost)
   end
 
 end
