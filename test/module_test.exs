@@ -1,7 +1,7 @@
 defmodule XMPP.ModuleTest do
   use ExUnit.Case, async: false
 
-  defmodule Echo do
+  defmodule Module do
     use XMPP.Module
 
     def init([host, _]) do
@@ -17,14 +17,14 @@ defmodule XMPP.ModuleTest do
 
   test "xmpp module starting and stopping" do
     ## start
-    {:ok, _module} = XMPP.Module.start("localhost", Echo, [{:host, <<"echo.@HOST@">>}])
-    assert Enum.member?(XMPP.Module.loaded("localhost"), Echo)
-    assert Keyword.has_key?(Supervisor.which_children(:ejabberd_sup), XMPP.ModuleTest.Echo_localhost)
+    {:ok, _module} = XMPP.Module.start("localhost", Module, [])
+    assert Enum.member?(XMPP.Module.modules("localhost"), Module)
+    assert Keyword.has_key?(Supervisor.which_children(:ejabberd_sup), XMPP.ModuleTest.Module_localhost)
 
     ## stop
-    assert :ok == XMPP.Module.stop("localhost", Echo)
-    refute Enum.member?(XMPP.Module.loaded("localhost"), Echo)
-    refute Keyword.has_key?(Supervisor.which_children(:ejabberd_sup), XMPP.ModuleTest.Echo_localhost)
+    assert :ok == XMPP.Module.stop("localhost", Module)
+    refute Enum.member?(XMPP.Module.modules("localhost"), Module)
+    refute Keyword.has_key?(Supervisor.which_children(:ejabberd_sup), XMPP.ModuleTest.Module_localhost)
   end
 
 end

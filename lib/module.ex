@@ -35,8 +35,7 @@ defmodule XMPP.Module do
       @doc false
       def start_link(host, options) do
         proc = :gen_mod.get_module_proc(host, __MODULE__)
-        module_host = :gen_mod.get_opt_host(host, options, host)
-        GenServer.start_link(__MODULE__, [module_host, options], [{:name, proc}])
+        GenServer.start_link(__MODULE__, [host, options], [{:name, proc}])
       end
 
       @doc false
@@ -45,14 +44,18 @@ defmodule XMPP.Module do
       end
 
       @doc false
-      def handle_info({:route, from, to, packet = xmlel(name: "message")}, state) do
-        handle_message(from, to, packet, state)
+      def handle_info({:route, from, to, stanza = xmlel(name: "presence")}, state) do
+        handle_presence(from, to, stanza, state)
       end
 
       @doc false
-      def handle_info({:route, from, to, packet = xmlel(name: "iq")}, state) do
-        iq = :jlib.iq_query_info(packet)
-        handle_iq(from, to, iq, state)
+      def handle_info({:route, from, to, stanza = xmlel(name: "message")}, state) do
+        handle_message(from, to, stanza, state)
+      end
+
+      @doc false
+      def handle_info({:route, from, to, stanza = xmlel(name: "iq")}, state) do
+        handle_iq(from, to, stanza, state)
       end
 
       ##
@@ -60,15 +63,26 @@ defmodule XMPP.Module do
       ##
 
       @doc false
-      def handle_message(from, to, message, state) do
+      def handle_presence(from, to, stanza, state) do
         {:noreply, state}
       end
 
-      def handle_iq(from, to, message, state) do
+      @doc false
+      def handle_message(from, to, stanza, state) do
         {:noreply, state}
       end
 
-      defoverridable [handle_message: 4,
+      @doc false
+      def handle_iq(from, to, stanza, state) do
+        {:noreply, state}
+      end
+
+      ##
+      ## "Exports"
+      ##
+
+      defoverridable [handle_presence: 4,
+                      handle_message: 4,
                       handle_iq: 4]
 
     end
@@ -82,7 +96,7 @@ defmodule XMPP.Module do
     :gen_mod.stop_module(host, module)
   end
 
-  def loaded(host) do
+  def modules(host) do
     :gen_mod.loaded_modules(host)
   end
 

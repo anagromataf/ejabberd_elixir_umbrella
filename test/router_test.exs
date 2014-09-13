@@ -2,9 +2,8 @@ defmodule XMPP.RouterTest do
     use ExUnit.Case
 
     require XMPP.Namespace
-    require XMPP.Element
-    require XMPP.Stanza
-    require Logger
+
+    import XMPP.Element
 
     defmodule Test do
       use XMPP.Module
@@ -19,54 +18,68 @@ defmodule XMPP.RouterTest do
         :ok
       end
 
-      def handle_message(from, to, message, state) do
-        {host, pid} = state
-        send pid, {:handle_message, from, to, message}
-        {:noreply, {host, pid}}
+      def handle_presence(from, to, stanza, state) do
+        {_, pid} = state
+        send pid, {:handle_presence, from, to, stanza}
+        {:noreply, state}
       end
 
-      def handle_iq(from, to, iq, state) do
-        {host, pid} = state
-        send pid, {:handle_iq, from, to, iq}
-        {:noreply, {host, pid}}
+      def handle_message(from, to, stanza, state) do
+        {_, pid} = state
+        send pid, {:handle_message, from, to, stanza}
+        {:noreply, state}
+      end
+
+      def handle_iq(from, to, stanza, state) do
+        {_, pid} = state
+        send pid, {:handle_iq, from, to, stanza}
+        {:noreply, state}
       end
 
     end
 
     setup do
-      XMPP.Router.register("foo.localhost")
-      {:ok, _} = XMPP.Module.start("localhost", Test, [{:host, <<"test.@HOST@">>}, {:pid, self()}])
+      module_host = "test.localhost"
+      test_host = "foo.localhost"
+      XMPP.Router.register(test_host)
+      {:ok, _} = XMPP.Module.start(module_host, Test, [{:pid, self()}])
       on_exit fn ->
-                XMPP.Router.unregister("foo.localhost")
-                XMPP.Module.stop("localhost", Test)
+                XMPP.Router.unregister(test_host)
+                XMPP.Module.stop(module_host, Test)
       end
+      {:ok, [module: module_host, local: test_host]}
     end
 
-    test "route packet" do
+    test "route stanza", %{local: local} do
       from = XMPP.Jid.new("test@example.com")
-      to = XMPP.Jid.new("foo.localhost")
-      packet = XMPP.Element.xmlel(name: "message")
-      XMPP.Router.route(from, to, packet)
-      assert_receive {:route, ^from, ^to, ^packet}
+      to = XMPP.Jid.new(local)
+      stanza = xmlel(name: "message")
+      XMPP.Router.route(from, to, stanza)
+      assert_receive {:route, ^from, ^to, ^stanza}
     end
 
-    test "handle message" do
+    test "handle message stanze", %{module: module} do
       from = XMPP.Jid.new("test@example.com")
-      to = XMPP.Jid.new("test.localhost")
-      message = XMPP.Element.xmlel(name: "message")
-      XMPP.Router.route(from, to, message)
-      assert_receive {:handle_message, ^from, ^to, ^message}
+      to = XMPP.Jid.new(module)
+      stanza = XMPP.Element.xmlel(name: "message")
+      XMPP.Router.route(from, to, stanza)
+      assert_receive {:handle_message, ^from, ^to, ^stanza}
     end
 
-    test "handle iq" do
+    test "handle iq stanze", %{module: module} do
       from = XMPP.Jid.new("test@example.com")
-      to = XMPP.Jid.new("test.localhost")
-      ns = XMPP.Namespace.ping
-      iq = XMPP.Stanza.iq(type: :get,
-                          xmlns: ns,
-                          sub_el: XMPP.Element.xmlel(name: "query",
-                                                     attrs: [{"xmlns", ns}]))
-      XMPP.Router.route(from, to, iq)
-      assert_receive {:handle_iq, ^from, ^to, ^iq}
+      to = XMPP.Jid.new(module)
+      stanza = xmlel(name: "iq")
+      XMPP.Router.route(from, to, stanza)
+      assert_receive {:handle_iq, ^from, ^to, ^stanza}
     end
+
+    test "handle presence stanze", %{module: module} do
+      from = XMPP.Jid.new("test@example.com")
+      to = XMPP.Jid.new(module)
+      stanza = xmlel(name: "presence")
+      XMPP.Router.route(from, to, stanza)
+      assert_receive {:handle_presence, ^from, ^to, ^stanza}
+    end
+
 end
